@@ -1,0 +1,2033 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB JSON 转换器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d1117'/%3E%3Ctext x='16' y='22' font-size='18' font-weight='700' text-anchor='middle' font-family='JetBrains Mono,monospace' fill='%2358a6ff'%3E%7B%7D%3C/text%3E%3Ccircle cx='16' cy='11' r='2.5' fill='%233fb950'/%3E%3C/svg%3E">
+    <script src="https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs/loader.js"></script>
+    <style>
+        :root {
+            --bg-page:        #0d1117;
+            --bg-page-glow:   radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56,139,253,0.08), transparent);
+            --bg-container:   #161b22;
+            --bg-panel:       #1c2333;
+            --bg-monaco:      #0d1117;
+            --bg-btn-copy:    #21262d;
+            --bg-btn-clear:   #2d1f0e;
+            --bg-btn-copy-h:  #30363d;
+            --bg-btn-clear-h: #3d2a12;
+            --bg-ts-bar:      #161b22;
+            --bg-ts-input:    #0d1117;
+            --bg-ts-now:      #21262d;
+            --bg-ts-now-h:    #30363d;
+            --bg-history:     #161b22;
+            --bg-history-item:#1c2333;
+            --bg-history-h:   #21262d;
+            --bg-filter:      #161b22;
+            --bg-tag:         #21262d;
+            --bg-tag-active:  #1a3a5c;
+            --bg-grid:        linear-gradient(rgba(48,54,61,0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(48,54,61,0.15) 1px, transparent 1px);
+
+            --border:         #30363d;
+            --border-accent:  #58a6ff;
+            --border-btn-copy:#30363d;
+            --border-btn-clear:#6e4a14;
+
+            --text-h1:        #e6edf3;
+            --text-sub:       #7d8590;
+            --text-title:     #8b949e;
+            --text-input:     #c9d1d9;
+            --text-ph:        #484f58;
+            --text-btn-copy:  #8b949e;
+            --text-btn-clear: #d29922;
+            --text-ts-label:  #7d8590;
+            --text-ts-input:  #c9d1d9;
+            --text-ts-now:    #8b949e;
+            --text-tag:       #8b949e;
+            --text-tag-active:#58a6ff;
+
+            --accent:         #58a6ff;
+            --accent-green:   #3fb950;
+            --accent-glow:    rgba(88,166,255,0.12);
+            --glow-primary:   0 0 20px rgba(88,166,255,0.15);
+            --glow-success:   0 0 20px rgba(63,185,80,0.15);
+            --divider-color:  #30363d;
+            --shadow:         0 16px 70px rgba(0,0,0,0.5);
+            --shadow-elevated:0 24px 80px rgba(0,0,0,0.6);
+            --radius-sm:      6px;
+            --radius-md:      8px;
+            --radius-lg:      12px;
+
+            --status-ok-bg:   #0d2818; --status-ok-fg: #3fb950; --status-ok-bd: #238636;
+            --status-wn-bg:   #2d1f0e; --status-wn-fg: #d29922; --status-wn-bd: #6e4a14;
+            --status-er-bg:   #2d1215; --status-er-fg: #f85149; --status-er-bd: #8b1a2b;
+
+            --ease-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-spring:    cubic-bezier(0.16, 1, 0.3, 1);
+            --transition:     background 0.25s var(--ease-standard), color 0.25s var(--ease-standard), border-color 0.25s var(--ease-standard), box-shadow 0.25s var(--ease-standard), transform 0.25s var(--ease-standard);
+        }
+        body.light {
+            --bg-page:        #f0f2f5;
+            --bg-page-glow:   radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,0.06), transparent);
+            --bg-container:   #ffffff;
+            --bg-panel:       #f6f8fa;
+            --bg-monaco:      #ffffff;
+            --bg-btn-copy:    #f0f2f5;
+            --bg-btn-clear:   #fff8e1;
+            --bg-btn-copy-h:  #e8eaed;
+            --bg-btn-clear-h: #fff0c2;
+            --bg-ts-bar:      #f6f8fa;
+            --bg-ts-input:    #ffffff;
+            --bg-ts-now:      #f0f2f5;
+            --bg-ts-now-h:    #e8eaed;
+            --bg-history:     #f6f8fa;
+            --bg-history-item:#ffffff;
+            --bg-history-h:   #f0f2f5;
+            --bg-filter:      #f6f8fa;
+            --bg-tag:         #e8eaed;
+            --bg-tag-active:  #d2e3fc;
+
+            --bg-grid:        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+
+            --border:         #d0d7de;
+            --border-accent:  #0969da;
+            --border-btn-copy:#d0d7de;
+            --border-btn-clear:#bf8700;
+
+            --text-h1:        #1f2328;
+            --text-sub:       #656d76;
+            --text-title:     #424a53;
+            --text-input:     #1f2328;
+            --text-ph:        #a8b0b8;
+            --text-btn-copy:  #424a53;
+            --text-btn-clear: #9a6700;
+            --text-ts-label:  #656d76;
+            --text-ts-input:  #1f2328;
+            --text-ts-now:    #424a53;
+            --text-tag:       #424a53;
+            --text-tag-active:#0969da;
+
+            --accent:         #0969da;
+            --accent-green:   #1a7f37;
+            --accent-glow:    rgba(9,105,218,0.08);
+            --glow-primary:   0 0 20px rgba(9,105,218,0.1);
+            --glow-success:   0 0 20px rgba(26,127,55,0.1);
+            --divider-color:  #d0d7de;
+            --shadow:         0 16px 70px rgba(0,0,0,0.08);
+            --shadow-elevated:0 24px 80px rgba(0,0,0,0.12);
+
+            --status-ok-bg:   #dafbe1; --status-ok-fg: #1a7f37; --status-ok-bd: #bcf0c9;
+            --status-wn-bg:   #fff8c5; --status-wn-fg: #9a6700; --status-wn-bd: #f0d46a;
+            --status-er-bg:   #ffebe9; --status-er-fg: #cf222e; --status-er-bd: #f8a8b0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 14px; }
+        body {
+            font-family: 'Noto Sans SC', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-page);
+            background-image: var(--bg-grid);
+            background-size: 24px 24px;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px;
+            transition: var(--transition);
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: var(--bg-page-glow);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body > .container {
+            position: relative;
+            z-index: 1;
+        }
+        .container {
+            background: var(--bg-container);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+            padding: 20px 28px 18px;
+            width: 100%;
+            max-width: 100vw;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+        .main-area-wrap {
+            height: calc(100vh - 200px);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            position: relative;
+            flex-shrink: 0;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            color: var(--text-h1);
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-glow);
+            border: 1px solid rgba(88,166,255,0.2);
+            transition: var(--transition);
+        }
+        h1 .logo-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--accent);
+        }
+        .subtitle {
+            color: var(--text-sub);
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .subtitle .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--bg-tag);
+            color: var(--text-tag);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+        .subtitle .badge:hover {
+            border-color: var(--border);
+            background: var(--bg-tag-active);
+            color: var(--text-tag-active);
+        }
+        .header-right {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .theme-toggle {
+            background: var(--bg-tag);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Noto Sans SC', sans-serif;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: auto;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+        .theme-toggle .icon { font-size: 14px; }
+
+        /* Status */
+        #statusMessage {
+            position: fixed; top: 24px; left: 50%;
+            transform: translateX(-50%) translateY(-12px);
+            padding: 10px 22px; border-radius: var(--radius-md);
+            font-size: 12px; font-weight: 500;
+            font-family: 'Noto Sans SC', sans-serif;
+            box-shadow: var(--shadow-elevated);
+            display: none; z-index: 9999; white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s var(--ease-standard), transform 0.3s var(--ease-spring);
+            pointer-events: none;
+            backdrop-filter: blur(12px);
+        }
+        #statusMessage.visible  { opacity:1; transform:translateX(-50%) translateY(0); }
+        #statusMessage.success  { background:var(--status-ok-bg); color:var(--status-ok-fg); border:1px solid var(--status-ok-bd); display:block; }
+        #statusMessage.warning  { background:var(--status-wn-bg); color:var(--status-wn-fg); border:1px solid var(--status-wn-bd); display:block; }
+        #statusMessage.error    { background:var(--status-er-bg); color:var(--status-er-fg); border:1px solid var(--status-er-bd); display:block; }
+
+        /* Main layout */
+        .main-area { display:flex; gap:0; flex:1; min-height:0; margin-bottom:12px; }
+        .left-col { display:flex; flex-direction:column; flex:0 0 32%; min-width:0; }
+        .right-col { display:flex; flex-direction:column; flex:1; min-width:0; }
+
+        /* Divider */
+        .divider {
+            width:10px;
+            background: linear-gradient(180deg, transparent, var(--divider-color) 15%, var(--divider-color) 85%, transparent);
+            cursor:col-resize; user-select:none;
+            transition: background 0.2s var(--ease-standard);
+            flex-shrink:0;
+            border-radius: 2px;
+            position: relative;
+        }
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 3px;
+            height: 40px;
+            background: var(--text-ph);
+            border-radius: 3px;
+            opacity: 0.3;
+            transition: opacity 0.2s var(--ease-standard), background 0.2s var(--ease-standard);
+        }
+        .divider:hover::after, .divider.dragging::after { opacity: 0.8; background: var(--accent); }
+        .divider:hover, .divider.dragging { background: linear-gradient(180deg, transparent, var(--accent) 15%, var(--accent) 85%, transparent); }
+
+        /* Section headers */
+        .section-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:10px; padding:0 2px 8px; gap:8px; flex-wrap:wrap; flex-shrink:0;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-title {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            font-size:12px; font-weight:700; color:var(--text-title);
+            text-transform:uppercase; letter-spacing:0.08em; transition:var(--transition);
+            display:flex; align-items:center; gap:8px;
+        }
+        .section-title .icon {
+            display: inline-flex;
+            align-items: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: var(--accent-glow);
+            justify-content: center;
+        }
+        .section-title .icon svg { width: 11px; height: 11px; fill: var(--accent); }
+        .doc-count-badge {
+            background: var(--bg-tag-active); color: var(--text-tag-active);
+            font-size: 10px; font-weight:700; padding: 2px 8px; border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
+        }
+        .section-title.converting::after {
+            content:'';
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: statusPulse 1.2s ease-in-out infinite;
+            margin-left: 8px;
+        }
+        @keyframes statusPulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Monaco panels */
+        .monaco-outer {
+            flex:1; min-height:0; position:relative;
+            border-radius: var(--radius-md);
+            overflow:hidden;
+            border:1px solid var(--border);
+            transition:border-color 0.3s var(--ease-standard), box-shadow 0.3s var(--ease-standard);
+            background:var(--bg-monaco);
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .monaco-outer:focus-within {
+            border-color:var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow), inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .monaco-inner { position:absolute; top:0; right:0; bottom:0; left:0; }
+
+        /* Output stats bar */
+        .output-stats {
+            font-size: 10px; color: var(--text-sub); font-family: 'JetBrains Mono', monospace;
+            display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+            margin-left: 4px;
+        }
+        .stat-item {
+            display:flex; align-items:center; gap:4px;
+            padding: 3px 10px;
+            background: var(--bg-tag);
+            border-radius: 20px;
+            font-size: 10px;
+            border: 1px solid var(--border);
+        }
+        .stat-dot { width:5px; height:5px; border-radius:50%; display:inline-block; }
+        .stat-dot.blue { background: var(--accent); }
+        .stat-dot.green { background: var(--accent-green); }
+        .stat-dot.orange { background: #d29922; }
+
+        /* Buttons */
+        .btn-expand-group { display:flex; gap:0; }
+        .btn-expand {
+            background: var(--bg-tag);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            font-size: 11px;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 600;
+            color: var(--text-title);
+            cursor: pointer;
+            min-width: auto;
+            text-transform: none;
+            letter-spacing: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .btn-expand:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); border-right-width: 0.5px; }
+        .btn-expand:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left-width: 0.5px; }
+        .btn-expand:not(:first-child):not(:last-child) { border-radius:0; border-right-width:0.5px; }
+        .btn-expand:hover  { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+        .btn-expand.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+
+        /* ===== COMMAND BAR (action toolbar) ===== */
+        .action-toolbar,
+        .button-group {
+            display: flex; align-items: center; gap: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 6px 8px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            transition: var(--transition);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+        }
+        .button-group {
+            gap: 8px;
+            padding: 10px;
+            justify-content: center;
+            background: linear-gradient(180deg, var(--bg-panel), var(--bg-container));
+            margin-top: 14px;
+        }
+        .toolbar-group { display: flex; align-items: center; gap: 4px; }
+        .toolbar-divider {
+            width: 1px; height: 24px; background: var(--border);
+            margin: 0 6px; flex-shrink: 0;
+        }
+        .tool-btn, button {
+            padding: 7px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Noto Sans SC', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-standard);
+            text-transform: none;
+            letter-spacing: 0;
+            min-width: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .tool-btn:active, button:active { transform: scale(0.97); }
+
+        /* Primary action buttons */
+        .btn-convert, .tool-btn-convert {
+            background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(31,111,235,0.3);
+            border: none;
+            padding: 7px 18px;
+        }
+        .btn-convert:hover, .tool-btn-convert:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(31,111,235,0.4);
+            opacity: 0.95;
+        }
+        body.light .btn-convert, body.light .tool-btn-convert {
+            background: linear-gradient(135deg, #0969da 0%, #218bff 100%);
+        }
+
+        .btn-paste, .tool-btn-paste {
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(35,134,54,0.3);
+            border: none;
+            padding: 7px 14px;
+        }
+        .btn-paste:hover, .tool-btn-paste:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(35,134,54,0.4);
+            opacity: 0.95;
+        }
+        body.light .btn-paste, body.light .tool-btn-paste {
+            background: linear-gradient(135deg, #1a7f37 0%, #2ea043 100%);
+        }
+
+        /* Secondary buttons */
+        .btn-copy, .btn-download {
+            background: var(--bg-btn-copy);
+            color: var(--text-btn-copy);
+            border: 1px solid var(--border-btn-copy);
+        }
+        .btn-copy:hover, .btn-download:hover {
+            background: var(--bg-btn-copy-h);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-clear {
+            background: var(--bg-btn-clear);
+            color: var(--text-btn-clear);
+            border: 1px solid var(--border-btn-clear);
+        }
+        .btn-clear:hover {
+            background: var(--bg-btn-clear-h);
+        }
+
+        .btn-expand {
+            padding: 5px 12px;
+            font-size: 11px;
+        }
+
+        /* ===== FONT SIZE CONTROL ===== */
+        .font-size-ctrl {
+            display: flex; align-items: center; gap: 0;
+            border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+            flex-shrink: 0; transition: border-color 0.2s var(--ease-standard);
+            background: var(--bg-tag);
+        }
+        .font-size-ctrl:hover { border-color: var(--accent); }
+        .fs-btn {
+            background: none; border: none; color: var(--text-title);
+            padding: 3px 8px; cursor: pointer; font-size: 11px; font-weight: 700;
+            font-family: 'Noto Sans SC', sans-serif;
+            min-width: auto; text-transform: none; letter-spacing: 0;
+            transition: background 0.15s var(--ease-standard), color 0.15s var(--ease-standard);
+            white-space: nowrap;
+        }
+        .fs-btn:hover { background: var(--accent-glow); color: var(--accent); }
+        .fs-val {
+            font-size: 10px; font-family: 'JetBrains Mono', monospace;
+            color: var(--text-sub); padding: 0 6px; min-width: 32px; text-align: center;
+            border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+            line-height: 24px; display: inline-block;
+        }
+
+        /* ===== BOTTOM TOOLS BAR ===== */
+        .bottom-tools-bar {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; margin-top: 14px; flex-shrink: 0;
+            background: var(--bg-container); border: 1px solid var(--border);
+            border-radius: 20px; padding: 4px 8px; width: fit-content;
+            align-self: center;
+            transition: var(--transition);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        }
+        .bottom-tool-toggle {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 18px; background: none; border: none;
+            cursor: pointer; font-size: 12px; color: var(--text-ts-label); font-weight: 600;
+            font-family: 'Noto Sans SC', sans-serif;
+            min-width: auto; text-transform: none; letter-spacing: 0;
+            transition: color 0.2s var(--ease-standard), background 0.2s var(--ease-standard), border-radius 0.2s var(--ease-standard);
+            border-radius: 16px;
+            user-select: none;
+        }
+        .bottom-tool-toggle:hover { color: var(--accent); background: var(--accent-glow); }
+        .bottom-tool-toggle.open { color: var(--accent); background: var(--accent-glow); border-radius: 16px; }
+        .bottom-arrow { font-size: 8px; transition: transform 0.25s var(--ease-spring); }
+        .bottom-tool-toggle.open .bottom-arrow { transform: rotate(180deg); }
+        .bottom-tool-divider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+
+        /* Timestamp bar */
+        .ts-bar-wrapper { display:flex; flex-direction:column; align-items:center; margin-top:0; flex-shrink:0; }
+        .ts-bar-collapsible {
+            overflow:hidden; max-height:0; opacity:0;
+            transition:max-height 0.4s var(--ease-spring), opacity 0.3s var(--ease-standard), margin-top 0.4s var(--ease-spring), transform 0.4s var(--ease-spring);
+            margin-top:0; display:flex; justify-content:center; width:100%;
+            transform: translateY(10px);
+        }
+        .ts-bar-collapsible.open { max-height:120px; opacity:1; margin-top:12px; transform: translateY(0); }
+        .ts-bar {
+            display:flex; align-items:center; gap:10px; padding:10px 18px;
+            background:var(--bg-ts-bar); border:1px solid var(--border); border-radius:var(--radius-md); flex-wrap:nowrap;
+            width:60%; transition:var(--transition);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .ts-bar-label {
+            font-size:11px; color:var(--text-ts-label); white-space:nowrap; font-weight:700; flex-shrink:0;
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .ts-input {
+            font-weight:500; flex:1; min-width:0; padding:7px 12px;
+            border:1px solid var(--border); border-radius:var(--radius-sm);
+            font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-ts-input);
+            background:var(--bg-ts-input); outline:none; transition:var(--transition);
+        }
+        .ts-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .ts-input::placeholder { color:var(--text-ph); font-family:'Noto Sans SC', sans-serif; font-size:11px; }
+        .ts-arrow-btn {
+            flex-shrink:0; padding:7px 16px;
+            background:linear-gradient(135deg,#1f6feb 0%,#388bfd 100%); color:white;
+            border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:700;
+            cursor:pointer; transition:all 0.2s var(--ease-standard); min-width:auto; text-transform:none;
+        }
+        .ts-arrow-btn:hover { transform:translateY(-1px); box-shadow: 0 4px 12px rgba(31,111,235,0.3); }
+        .ts-now-btn {
+            flex-shrink:0; padding:6px 10px; background:var(--bg-ts-now); color:var(--text-ts-now);
+            border:1px solid var(--border); border-radius:var(--radius-sm); font-size:11px;
+            cursor:pointer; min-width:auto; text-transform:none; font-weight:600;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition:var(--transition);
+        }
+        .ts-now-btn:hover { background:var(--bg-ts-now-h); border-color:var(--accent); color:var(--accent); }
+        .ts-input-wrap { flex:1; min-width:0; position:relative; display:flex; align-items:center; }
+        .ts-input-wrap .ts-input { flex:1; padding-right:28px; }
+        .ts-clear-btn {
+            position:absolute; right:6px; top:50%; transform:translateY(-50%);
+            background:none; border:none; color:#484f58; font-size:15px;
+            cursor:pointer; padding:0 2px; min-width:auto; border-radius:50%;
+            text-transform:none; transition:color 0.15s var(--ease-standard);
+        }
+        .ts-clear-btn:hover { color:var(--accent); background:var(--accent-glow); transform:translateY(-50%); }
+
+        /* ===== HISTORY PANEL ===== */
+        .history-panel {
+            position: fixed; top: 0; right: -380px; width: 360px; height: 100vh;
+            background: var(--bg-container); border-left: 1px solid var(--border);
+            box-shadow: var(--shadow-elevated);
+            z-index: 5000; display: flex; flex-direction: column;
+            transition: right 0.35s var(--ease-spring);
+            border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        }
+        .history-panel.open { right: 0; }
+        .history-header {
+            padding: 18px 20px 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink:0;
+        }
+        .history-title {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            font-size: 13px; font-weight: 700; color: var(--text-h1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .history-close {
+            background: var(--bg-tag); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 4px 10px; font-size: 12px; color: var(--text-title); cursor: pointer;
+            min-width: auto; text-transform: none; transition: var(--transition);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .history-close:hover { border-color: var(--accent); color: var(--accent); }
+        .history-list { flex:1; overflow-y:auto; padding: 10px 14px; display:flex; flex-direction:column; gap:8px; }
+        .history-item {
+            background: var(--bg-history-item); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 12px 14px; cursor: pointer;
+            transition: var(--transition); position: relative;
+        }
+        .history-item:hover { background: var(--bg-history-h); border-color: var(--accent); transform: translateX(-2px); }
+        .history-item-time {
+            font-size: 10px; color: var(--text-sub);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 4px;
+        }
+        .history-item-preview {
+            font-size: 11px; color: var(--text-input);
+            font-family: 'JetBrains Mono', monospace;
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:calc(100% - 24px);
+        }
+        .history-item-meta {
+            font-size: 10px; color: var(--text-sub); margin-top: 6px;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .history-del {
+            position: absolute; top: 8px; right: 10px; background: none; border: none;
+            color: var(--text-sub); cursor: pointer; font-size: 14px; min-width:auto;
+            padding: 2px 4px; text-transform:none; transition:color 0.15s var(--ease-standard);
+        }
+        .history-del:hover { color: #f85149; }
+        .history-empty { text-align:center; color:var(--text-sub); font-size:13px; padding:40px 20px; }
+        .history-footer { padding: 10px 14px; border-top:1px solid var(--border); flex-shrink:0; }
+        .btn-clear-history {
+            width:100%; background:var(--bg-btn-clear); color:var(--text-btn-clear);
+            border:1px solid var(--border-btn-clear); border-radius:var(--radius-sm); padding:8px;
+            font-size:11px; cursor:pointer; min-width:auto; text-transform:none; font-weight:600;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition:var(--transition);
+        }
+        .btn-clear-history:hover { background:var(--bg-btn-clear-h); }
+        .history-overlay {
+            position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:4999;
+            display:none; backdrop-filter:blur(4px);
+        }
+        .history-overlay.open { display:block; }
+
+        /* ===== FIELD FILTER PANEL ===== */
+        .filter-panel {
+            position: fixed; top: 0; left: -420px; width: 400px; height: 100vh;
+            background: var(--bg-container); border-right: 1px solid var(--border);
+            box-shadow: var(--shadow-elevated);
+            z-index: 5000; display: flex; flex-direction: column;
+            transition: left 0.35s var(--ease-spring);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+        }
+        .filter-panel.open { left: 0; }
+        .filter-header {
+            padding: 18px 20px 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink:0;
+        }
+        .filter-title {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            font-size: 13px; font-weight: 700; color: var(--text-h1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .filter-close {
+            background: var(--bg-tag); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 4px 10px; font-size: 12px; color: var(--text-title); cursor: pointer;
+            min-width: auto; text-transform: none; transition: var(--transition);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .filter-close:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-search-wrap { padding: 10px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
+        .filter-search {
+            width:100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-panel); color: var(--text-input); font-size: 12px; outline:none;
+            font-family: 'JetBrains Mono', monospace; transition:var(--transition);
+        }
+        .filter-search:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .filter-search::placeholder { color:var(--text-ph); font-family:'Noto Sans SC', sans-serif; }
+        .filter-actions { padding: 8px 14px; display:flex; gap:6px; flex-shrink:0; }
+        .btn-filter-action {
+            flex:1; padding: 6px 10px; border: 1px solid var(--border); border-radius:var(--radius-sm);
+            background:none; color:var(--text-title); font-size:11px; cursor:pointer;
+            min-width:auto; text-transform:none; font-weight:600; transition:var(--transition);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .btn-filter-action:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+        .filter-list { flex:1; overflow-y:auto; padding: 8px 14px; display:flex; flex-direction:column; gap:4px; }
+        .filter-item {
+            display:flex; align-items:center; gap:10px; padding:8px 10px;
+            background: var(--bg-history-item); border:1px solid var(--border); border-radius:var(--radius-sm);
+            cursor:pointer; transition:var(--transition);
+        }
+        .filter-item:hover { background:var(--bg-history-h); border-color:var(--border-accent); }
+        .filter-item.selected { border-color:var(--accent); background:var(--accent-glow); }
+        .filter-checkbox {
+            width:15px; height:15px; border:2px solid var(--border); border-radius:4px;
+            flex-shrink:0; display:flex; align-items:center; justify-content:center;
+            transition:var(--transition); background: var(--bg-panel);
+        }
+        .filter-item.selected .filter-checkbox { background:var(--accent); border-color:var(--accent); }
+        .filter-check-icon { color:white; font-size:10px; font-weight:bold; display:none; }
+        .filter-item.selected .filter-check-icon { display:block; }
+        .filter-key { font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-input); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .filter-type {
+            font-size:9px; color:var(--text-sub); flex-shrink:0;
+            font-family:'JetBrains Mono', monospace;
+            background:var(--bg-tag); padding:1px 6px; border-radius:4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .filter-footer { padding:12px 14px; border-top:1px solid var(--border); flex-shrink:0; display:flex; gap:8px; }
+        .btn-apply-filter {
+            flex:2; padding:9px; background:linear-gradient(135deg,#1f6feb 0%,#388bfd 100%);
+            color:white; border:none; border-radius:var(--radius-sm); font-size:12px; cursor:pointer;
+            font-weight:600; min-width:auto; text-transform:none; transition:all 0.2s var(--ease-standard);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .btn-apply-filter:hover { transform:translateY(-1px); box-shadow: 0 4px 12px rgba(31,111,235,0.3); }
+        .btn-reset-filter {
+            flex:1; padding:9px; background:var(--bg-btn-clear); color:var(--text-btn-clear);
+            border:1px solid var(--border-btn-clear); border-radius:var(--radius-sm); font-size:12px;
+            cursor:pointer; min-width:auto; text-transform:none; font-weight:600; transition:var(--transition);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .filter-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:4999; display:none; backdrop-filter:blur(4px); }
+        .filter-overlay.open { display:block; }
+        .filter-empty { text-align:center; color:var(--text-sub); font-size:13px; padding:30px 20px; }
+
+        /* ===== CODEC BAR ===== */
+        .codec-bar-wrapper { display:flex; flex-direction:column; align-items:center; margin-top:0; flex-shrink:0; }
+        .codec-bar-collapsible {
+            overflow:hidden; max-height:0; opacity:0;
+            transition:max-height 0.45s var(--ease-spring), opacity 0.3s var(--ease-standard), margin-top 0.45s var(--ease-spring), transform 0.45s var(--ease-spring);
+            margin-top:0; width:100%;
+            transform: translateY(10px);
+        }
+        .codec-bar-collapsible.open { max-height:850px; opacity:1; margin-top:12px; transform: translateY(0); }
+
+        /* Codec panel inner */
+        .codec-panel {
+            background:var(--bg-ts-bar); border:1px solid var(--border); border-radius:var(--radius-lg);
+            padding:16px 20px 20px; display:flex; flex-direction:column; gap:0;
+            transition:var(--transition);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+        }
+        /* Header row: tabs */
+        .codec-panel-header {
+            display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+        }
+        .codec-panel-label {
+            font-family: 'Outfit', sans-serif;
+            font-size:11px; font-weight:700; color:var(--text-ts-label); white-space:nowrap; flex-shrink:0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .codec-tabs { display:flex; gap:4px; flex-wrap:wrap; flex:1; }
+        .codec-tab {
+            padding:4px 11px; border:1px solid var(--border); border-radius:var(--radius-sm);
+            background:none; color:var(--text-ts-label); font-size:11px; font-weight:600;
+            cursor:pointer; min-width:auto; text-transform:none; letter-spacing:0;
+            transition:var(--transition); white-space:nowrap;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .codec-tab:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+        .codec-tab.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+
+        /* Input row */
+        .codec-row { display:flex; flex-direction:column; gap:5px; }
+        .codec-row-label {
+            font-size:11px; font-weight:600; color:var(--text-ts-label);
+            display:flex; align-items:center; justify-content:space-between;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .codec-textarea {
+            width:100%; min-height:110px; resize:vertical;
+            padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
+            font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6;
+            color:var(--text-ts-input); background:var(--bg-ts-input); outline:none;
+            transition:var(--transition); word-break:break-all;
+            scrollbar-color: var(--border) var(--bg-ts-input); scrollbar-width: thin;
+        }
+        .codec-textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .codec-textarea::placeholder { color:var(--text-ph); font-family:'Noto Sans SC', sans-serif; font-size:11px; font-style:italic; }
+        .codec-textarea.output { background:var(--bg-panel); }
+
+        /* Middle action row */
+        .codec-actions-row {
+            display:flex; align-items:center; justify-content:center;
+            gap:10px; padding:10px 0;
+        }
+        .codec-action-btn {
+            padding:7px 22px; border:none; border-radius:var(--radius-sm);
+            background:linear-gradient(135deg,#1f6feb 0%,#388bfd 100%); color:white;
+            font-size:12px; font-weight:700; cursor:pointer; min-width:100px;
+            text-transform:none; letter-spacing:0; white-space:nowrap; transition:all 0.2s var(--ease-standard);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .codec-action-btn:hover { transform:translateY(-1px); box-shadow: 0 4px 12px rgba(31,111,235,0.3); }
+        .codec-action-btn.decode { background:linear-gradient(135deg,#238636 0%,#2ea043 100%); }
+        .codec-action-btn.decode:hover { box-shadow: 0 4px 12px rgba(35,134,54,0.3); }
+        .codec-action-btn.neutral {
+            background:var(--bg-ts-now); color:var(--text-ts-now);
+            border:1px solid var(--border); font-size:11px; padding:7px 14px; min-width:auto;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .codec-action-btn.neutral:hover { background:var(--bg-ts-now-h); border-color:var(--accent); color:var(--accent); transform:none; box-shadow: none; }
+        .codec-actions-divider { width:1px; height:20px; background:var(--border); }
+
+        /* Small util buttons */
+        .codec-util-btn {
+            padding:4px 10px; border:1px solid var(--border); border-radius:var(--radius-sm);
+            background:none; color:var(--text-ts-label); font-size:11px; font-weight:600;
+            cursor:pointer; min-width:auto; text-transform:none; transition:var(--transition);
+            white-space:nowrap;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .codec-util-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+
+        /* Fullscreen overlay */
+        .fullscreen-overlay {
+            display:none; position:fixed; inset:0; z-index:10000;
+            background:var(--bg-monaco); flex-direction:column;
+        }
+        .fullscreen-overlay.active { display:flex; }
+        .fullscreen-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:10px 16px; background:var(--bg-container);
+            border-bottom:1px solid var(--border); flex-shrink:0;
+        }
+        .fullscreen-title {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            font-size:12px; font-weight:600; color:var(--text-title);
+            text-transform:uppercase; letter-spacing:0.08em;
+        }
+        .fullscreen-close {
+            background:var(--bg-tag); border:1px solid var(--border); border-radius:var(--radius-sm);
+            padding:5px 12px; font-size:12px; color:var(--text-title); cursor:pointer;
+            min-width:auto; text-transform:none; letter-spacing:0; display:flex; align-items:center; gap:5px;
+            transition:var(--transition);
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .fullscreen-close:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+        #monacoFullscreen { flex:1; min-height:0; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width:6px; height:6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Left textarea */
+        textarea#monacoInput {
+            flex: 1; min-height: 0; margin: 0; padding: 14px;
+            border: 1px solid var(--border); border-radius: var(--radius-md);
+            font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6;
+            resize: none; background: var(--bg-panel); color: var(--text-input);
+            outline: none; transition: var(--transition);
+            scrollbar-color: var(--border) var(--bg-panel); scrollbar-width: thin;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        textarea#monacoInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), inset 0 1px 3px rgba(0,0,0,0.1); }
+        textarea#monacoInput::placeholder { color: var(--text-ph); }
+
+        @media (max-width:768px) {
+            .container { padding:14px; height:auto; border-radius: var(--radius-md); }
+            body { padding: 8px; }
+            .main-area { flex-direction:column; }
+            .divider { width:100%; height:10px; cursor:row-resize; }
+            .divider::after { width: 40px; height: 3px; }
+            .ts-bar { flex-wrap:wrap; width: 100%; gap: 8px; }
+            .theme-toggle span.label { display:none; }
+            .history-panel { width:90vw; }
+            .filter-panel { width:90vw; }
+            .button-group { flex-direction: column; align-items: stretch; gap: 6px; }
+            .button-group > * { width: 100%; justify-content: center; }
+            .bottom-tools-bar { width: 100%; border-radius: var(--radius-md); }
+            .header { flex-direction: column; gap: 8px; padding-bottom: 12px; }
+            .header-right { position: static; transform: none; }
+            .main-area-wrap { height: auto; min-height: 500px; }
+            .subtitle { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>
+            <span class="logo-icon">
+                <svg viewBox="0 0 16 16"><path d="M5.5 3.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm5 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm-5 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm5 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+            </span>
+            MongoDB JSON 转换器
+        </h1>
+        <div class="subtitle">
+            <span class="badge">自动转换</span>
+            <span class="badge">多文档</span>
+            <span class="badge">字段过滤</span>
+            <span class="badge">历史记录</span>
+        </div>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换明暗模式"><span class="icon">🌙</span><span class="label">暗色</span></button>
+        </div>
+    </div>
+    <div id="statusMessage"></div>
+
+    <div class="main-area-wrap">
+        <div class="main-area" id="mainArea">
+            <!-- LEFT: Input -->
+            <div class="left-col" id="leftSection" style="flex:0 0 36%">
+                <div class="section-header">
+                    <div class="section-title" id="inputTitle">
+                    <span class="icon">
+                        <svg viewBox="0 0 16 16"><path d="M2 3h12a1 1 0 0 1 1 1v1.5L9 7v6l-3 1V7L1 5.5V4a1 1 0 0 1 1-1z"/></svg>
+                    </span>
+                        输入
+                        <span class="doc-count-badge" id="docCountBadge" style="display:none"></span>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <button class="btn-expand" onclick="quickPaste()" title="快速粘贴剪贴板">📋 粘贴</button>
+                    </div>
+                </div>
+                <textarea id="monacoInput" placeholder="粘贴 MongoDB 数据...&#10;例如：&#10;{&#10;  _id: ObjectId(&quot;507f1f77bcf86cd799439011&quot;),&#10;  ts: ISODate(&quot;2024-01-01T00:00:00Z&quot;),&#10;  count: NumberLong(100)&#10;}"></textarea>
+            </div>
+
+            <div class="divider" id="divider"></div>
+
+            <!-- RIGHT: Output -->
+            <div class="right-col" id="rightSection">
+                <div class="section-header">
+                    <div class="section-title">
+                    <span class="icon">
+                        <svg viewBox="0 0 16 16"><path d="M3 3h10a1 1 0 0 1 1 1v1.5L8 7 2 5.5V4a1 1 0 0 1 1-1zm0 4l5 2.5L13 7v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z"/></svg>
+                    </span>
+                        输出
+                        <span class="output-stats" id="outputStats"></span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <div class="font-size-ctrl" title="调整输出区字体大小">
+                            <button class="fs-btn" onclick="changeOutputFontSize(-1)">A−</button>
+                            <span class="fs-val" id="outputFontSizeLabel">13px</span>
+                            <button class="fs-btn" onclick="changeOutputFontSize(1)">A+</button>
+                        </div>
+                        <div class="btn-expand-group">
+                            <button class="btn-expand active" id="deepParseToggle" onclick="toggleDeepParse()" title="递归解析嵌套 JSON 字符串">🔍 嵌套解析</button>
+                            <button class="btn-expand" id="wrapToggle" onclick="toggleWrap()" title="切换换行">⇌ 换行</button>
+                            <button class="btn-expand" onclick="openFilterPanel()" title="字段过滤与导出">🔧 字段过滤</button>
+                            <button class="btn-expand" id="editToggle" onclick="toggleOutputEditable()" title="切换输出框编辑权限">✏️ 编辑</button>
+                            <button class="btn-expand" onclick="openFullscreen()" title="铺满全屏">⛶ 全屏</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="monaco-outer"><div class="monaco-inner" id="monacoOutput"></div></div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-paste" onclick="quickPaste()">📋 快速粘贴</button>
+            <button class="btn-convert" onclick="convertNow()">🔄 立即转换</button>
+            <button class="btn-copy"    onclick="copyOutput()">📋 复制 JSON</button>
+            <button class="btn-download" onclick="downloadJSON()">💾 下载 .json</button>
+            <button class="btn-expand" style="padding:8px 20px;font-size:12px;font-weight:600;min-width:100px;border-radius:var(--radius-sm)" onclick="openHistory()" title="查看历史记录">🕐 历史记录</button>
+            <button class="btn-clear"   onclick="clearAll()">🗑️ 清空</button>
+        </div>
+    </div>
+
+    <!-- Bottom tools bar: toggles in one row -->
+    <div class="bottom-tools-bar">
+        <button class="bottom-tool-toggle" id="tsBarToggle" onclick="toggleTsBar()">
+            <span>⏱ 时间转换</span>
+            <span class="ts-toggle-arrow bottom-arrow">▼</span>
+        </button>
+        <div class="bottom-tool-divider"></div>
+        <button class="bottom-tool-toggle" id="codecBarToggle" onclick="toggleCodecBar()">
+            <span>🔣 编解码</span>
+            <span class="codec-toggle-arrow bottom-arrow">▼</span>
+        </button>
+    </div>
+
+    <!-- Timestamp collapsible -->
+    <div class="ts-bar-wrapper" style="margin-top:0">
+        <div class="ts-bar-collapsible" id="tsBarCollapsible">
+            <div class="ts-bar">
+                <span class="ts-bar-label">⏱ 时间转换</span>
+                <div class="ts-input-wrap">
+                    <input class="ts-input" id="tsTimestamp" type="text" placeholder="毫秒时间戳，如 1700000000000" oninput="tsAutoConvert('ts')">
+                    <button class="ts-clear-btn" onclick="tsClear('tsTimestamp')">×</button>
+                </div>
+                <button class="ts-arrow-btn" onclick="tsConvert()">⇄</button>
+                <div class="ts-input-wrap">
+                    <input class="ts-input" id="tsDatetime" type="text" placeholder="时间，如 2024-01-01 00:00:00" oninput="tsAutoConvert('dt')">
+                    <button class="ts-clear-btn" onclick="tsClear('tsDatetime')">×</button>
+                </div>
+                <button class="ts-now-btn" onclick="tsNow()">当前</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Codec bar -->
+    <div class="codec-bar-wrapper">
+        <div class="codec-bar-collapsible" id="codecBarCollapsible">
+            <div class="codec-panel">
+                <!-- Header: tabs -->
+                <div class="codec-panel-header">
+                    <span class="codec-panel-label">🔣 编解码工具</span>
+                    <div class="codec-tabs" id="codecTabs">
+                        <button class="codec-tab active" data-codec="base64" onclick="selectCodec('base64')">Base64</button>
+                        <button class="codec-tab" data-codec="url" onclick="selectCodec('url')">URL</button>
+                        <button class="codec-tab" data-codec="unicode" onclick="selectCodec('unicode')">Unicode</button>
+                        <button class="codec-tab" data-codec="html" onclick="selectCodec('html')">HTML 实体</button>
+                        <button class="codec-tab" data-codec="hex" onclick="selectCodec('hex')">Hex</button>
+                        <button class="codec-tab" data-codec="jwt" onclick="selectCodec('jwt')">JWT 解析</button>
+                    </div>
+                </div>
+                <!-- Input row -->
+                <div class="codec-row">
+                    <div class="codec-row-label">
+                        <span>输入</span>
+                        <button class="codec-util-btn" onclick="codecClearInput()">清空</button>
+                    </div>
+                    <textarea class="codec-textarea" id="codecInput" placeholder="在此输入原始文本或已编码内容..."></textarea>
+                </div>
+                <!-- Actions row -->
+                <div class="codec-actions-row">
+                    <button class="codec-action-btn" onclick="codecEncode()">编码（输入 → 输出）</button>
+                    <div class="codec-actions-divider"></div>
+                    <button class="codec-action-btn decode" onclick="codecDecode()">解码（输入 → 输出）</button>
+                    <div class="codec-actions-divider"></div>
+                    <button class="codec-action-btn neutral" onclick="codecSwap()" title="将输出结果移到输入框，继续操作">↑ 输出填回输入</button>
+                </div>
+                <!-- Output row -->
+                <div class="codec-row">
+                    <div class="codec-row-label">
+                        <span>输出 <span style="font-weight:400;color:var(--text-sub);font-size:10px">（只读，可全选复制）</span></span>
+                        <button class="codec-util-btn" onclick="codecCopy()">📋 复制输出</button>
+                    </div>
+                    <textarea class="codec-textarea output" id="codecOutput" placeholder="结果将显示在这里..." readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+    <div class="fullscreen-header">
+        <span class="fullscreen-title">📤 输出标准 JSON</span>
+        <button class="fullscreen-close" onclick="closeFullscreen()">✕ 退出全屏</button>
+    </div>
+    <div id="monacoFullscreen"></div>
+</div>
+
+<!-- History Panel -->
+<div class="history-overlay" id="historyOverlay" onclick="closeHistory()"></div>
+<div class="history-panel" id="historyPanel">
+    <div class="history-header">
+        <span class="history-title">🕐 转换历史</span>
+        <button class="history-close" onclick="closeHistory()">✕ 关闭</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="history-footer">
+        <button class="btn-clear-history" onclick="clearHistory()">🗑️ 清空全部历史</button>
+    </div>
+</div>
+
+<!-- Field Filter Panel -->
+<div class="filter-overlay" id="filterOverlay" onclick="closeFilterPanel()"></div>
+<div class="filter-panel" id="filterPanel">
+    <div class="filter-header">
+        <span class="filter-title">🔧 字段过滤</span>
+        <button class="filter-close" onclick="closeFilterPanel()">✕ 关闭</button>
+    </div>
+    <div class="filter-search-wrap">
+        <input class="filter-search" id="filterSearch" placeholder="搜索字段名..." oninput="filterSearchFields()">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter-action" onclick="selectAllFields()">全选</button>
+        <button class="btn-filter-action" onclick="deselectAllFields()">全不选</button>
+        <button class="btn-filter-action" onclick="invertSelection()">反选</button>
+    </div>
+    <div class="filter-list" id="filterList"></div>
+    <div class="filter-footer">
+        <button class="btn-apply-filter" onclick="applyFieldFilter()">✅ 应用过滤</button>
+        <button class="btn-reset-filter" onclick="resetFilter()">↩ 重置</button>
+    </div>
+</div>
+
+<script>
+    (function(){
+        'use strict';
+
+// ===== STATE =====
+
+        let editorOutput = null;
+        let editorFull   = null;
+        let _lastParsedObj   = null;  // raw parsed object(s)
+        let _lastFormattedJSON = '';
+        let _originalJSON = '';  // 未经过滤的原始 JSON
+        let _deepParseEnabled = true;
+        let _wrapEnabled = false;
+        let _isDark = true;
+        let _acTimer = null;
+        let _allFields = [];          // [{path, type}]
+        let _selectedFields = new Set(); // paths to INCLUDE (null = all)
+        let _filterActive = false;
+        const AC_DELAY = 600;
+        const HISTORY_KEY = 'mongo_converter_history';
+        const MAX_HISTORY = 20;
+
+// ===== MONACO INIT =====
+// ===== TEXTAREA INPUT INIT =====
+        const _inputEl = document.getElementById('monacoInput');
+        _inputEl.addEventListener('input', () => autoConvert());
+        _inputEl.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') convertNow(); });
+
+        require.config({ paths: { vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs' } });
+        require(['vs/editor/editor.main'], function() {
+
+            // Output editor
+            editorOutput = monaco.editor.create(document.getElementById('monacoOutput'), {
+                value: '// 转换后的 JSON 将在这里显示...',
+                language: 'json',
+                theme: 'vs-dark',
+                readOnly: _outputReadOnly,
+                automaticLayout: true,
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                fontSize: _outputFontSize,
+                lineNumbers: 'on',
+                folding: true,
+                foldingStrategy: 'indentation',
+                wordWrap: 'off',
+                renderLineHighlight: 'all',
+                scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+            });
+
+            // Right-click actions
+            [editorOutput].forEach(ed => registerContextActions(ed));
+        });
+
+        function registerContextActions(ed) {
+            ed.addAction({
+                id: 'ts-to-datetime',
+                label: '⏱ 时间戳转时间',
+                contextMenuGroupId: 'navigation',
+                contextMenuOrder: 1,
+                run(e) {
+                    const raw = e.getModel().getValueInRange(e.getSelection()).trim().replace(/[",]/g,'');
+                    let num = Number(raw);
+                    if (isNaN(num) || raw === '') { showStatus('⚠️ 请选中有效数字','warning'); return; }
+                    if (String(Math.abs(Math.floor(num))).length <= 10) num *= 1000;
+                    const d = new Date(num);
+                    if (isNaN(d.getTime())) { showStatus('⚠️ 无法解析为有效时间','warning'); return; }
+                    const pad = n => String(n).padStart(2,'0');
+                    const result = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                    document.getElementById('tsTimestamp').value = Math.floor(num);
+                    document.getElementById('tsDatetime').value = result;
+                    toggleTsBar(true);
+                    showStatus('✅ ' + raw + '  →  ' + result, 'success');
+                }
+            });
+            ed.addAction({
+                id: 'copy-raw-value',
+                label: '📋 复制原始值（去引号）',
+                contextMenuGroupId: 'navigation',
+                contextMenuOrder: 2,
+                run(e) {
+                    const text = e.getModel().getValueInRange(e.getSelection()).trim().replace(/^"|"$/g,'');
+                    navigator.clipboard.writeText(text)
+                        .then(() => showStatus('✅ 已复制：' + text.slice(0,40), 'success'))
+                        .catch(() => showStatus('❌ 复制失败','error'));
+                }
+            });
+        }
+
+// ===== MONGODB TYPE CONVERSION =====
+        function mongoToJSON(input) {
+            let out = input
+                // NumberLong / NumberInt / NumberDecimal — extract numeric value
+                .replace(/NumberLong\(\s*"?(-?\d+)"?\s*\)/g, '$1')
+                .replace(/NumberInt\(\s*(-?\d+)\s*\)/g, '$1')
+                .replace(/NumberDecimal\(\s*"([^"]+)"\s*\)/g, '"$1"')
+                // ISODate → string
+                .replace(/ISODate\((".*?")\)/g, '$1')
+                .replace(/new\s+Date\((".*?")\)/g, '$1')
+                .replace(/new\s+Date\((\d+)\)/g, '"$1"')
+                // ObjectId → string
+                .replace(/ObjectId\((".*?")\)/g, '$1')
+                // UUID → string
+                .replace(/UUID\((".*?")\)/g, '"uuid:$1"'.replace('"uuid:"','').replace('"$1"','$1'))
+                .replace(/UUID\("([^"]+)"\)/g, '"$1"')
+                // BinData → placeholder string
+                .replace(/BinData\(\s*\d+\s*,\s*"([^"]*)"\s*\)/g, '"[BinData:$1]"')
+                // DBRef
+                .replace(/DBRef\(\s*"([^"]+)"\s*,\s*ObjectId\("([^"]+)"\)\s*\)/g, '{"$ref":"$1","$id":"$2"}')
+                .replace(/DBRef\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g, '{"$ref":"$1","$id":"$2"}')
+                // Timestamp(t, i) → t (seconds)
+                .replace(/Timestamp\(\s*(\d+)\s*,\s*\d+\s*\)/g, '$1')
+                // MinKey / MaxKey
+                .replace(/MinKey/g, '"MinKey"')
+                .replace(/MaxKey/g, '"MaxKey"')
+                // undefined
+                .replace(/\bundefined\b/g, 'null')
+                // Unquoted keys: {key: ...} → {"key": ...}
+                .replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$.]*)\s*:/g, '$1"$2":');
+
+            return out;
+        }
+
+// Detect and split multiple root-level documents
+        function splitDocuments(input) {
+            const trimmed = input.trim();
+
+            // Could be already a JSON array
+            if (trimmed.startsWith('[')) {
+                return [trimmed];
+            }
+
+            // Try to find multiple { } blocks at root level
+            const docs = [];
+            let depth = 0, start = -1, inStr = false, escape = false;
+            for (let i = 0; i < trimmed.length; i++) {
+                const ch = trimmed[i];
+                if (escape) { escape = false; continue; }
+                if (ch === '\\' && inStr) { escape = true; continue; }
+                if (ch === '"') { inStr = !inStr; continue; }
+                if (inStr) continue;
+                if (ch === '{') {
+                    if (depth === 0) start = i;
+                    depth++;
+                } else if (ch === '}') {
+                    depth--;
+                    if (depth === 0 && start !== -1) {
+                        docs.push(trimmed.slice(start, i + 1));
+                        start = -1;
+                    }
+                }
+            }
+            return docs.length > 0 ? docs : [trimmed];
+        }
+
+        function parseMongoInput(raw) {
+            const docs = splitDocuments(raw);
+            const results = [];
+            const errors = [];
+
+            docs.forEach((doc, idx) => {
+                try {
+                    const converted = mongoToJSON(doc);
+                    const parsed = JSON.parse(converted);
+                    results.push(parsed);
+                } catch(e) {
+                    errors.push({ index: idx + 1, msg: e.message });
+                }
+            });
+
+            return { results, errors, total: docs.length };
+        }
+
+// ===== DEEP PARSE =====
+        function deepParseStrings(val) {
+            if (typeof val === 'string') {
+                const t = val.trim();
+                if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+                    try { return deepParseStrings(JSON.parse(t)); } catch(e) {}
+                }
+                return val;
+            }
+            if (Array.isArray(val)) return val.map(deepParseStrings);
+            if (val !== null && typeof val === 'object') {
+                const r = {};
+                for (const k of Object.keys(val)) r[k] = deepParseStrings(val[k]);
+                return r;
+            }
+            return val;
+        }
+
+// ===== STATS =====
+        function countFields(obj, depth = 0, maxDepth = 0) {
+            if (typeof obj !== 'object' || obj === null) return { fields: 0, depth: maxDepth };
+            let fields = 0;
+            for (const k of Object.keys(obj)) {
+                fields++;
+                if (typeof obj[k] === 'object' && obj[k] !== null) {
+                    const sub = countFields(obj[k], depth + 1, Math.max(maxDepth, depth + 1));
+                    fields += sub.fields;
+                    maxDepth = Math.max(maxDepth, sub.depth);
+                }
+            }
+            return { fields, depth: maxDepth };
+        }
+
+        function updateOutputStats(obj, jsonStr) {
+            const statsEl = document.getElementById('outputStats');
+            if (!obj) { statsEl.innerHTML = ''; return; }
+            const target = Array.isArray(obj) ? obj : [obj];
+            const { fields, depth } = countFields(Array.isArray(obj) ? { _: obj } : obj);
+            const bytes = new Blob([jsonStr]).size;
+            const bytesStr = bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? (bytes/1024).toFixed(1) + ' KB' : (bytes/1048576).toFixed(2) + ' MB';
+            statsEl.innerHTML = `
+        <span class="stat-item"><span class="stat-dot blue"></span>${target.length} 文档</span>
+        <span class="stat-item"><span class="stat-dot green"></span>${fields} 字段</span>
+        <span class="stat-item"><span class="stat-dot orange"></span>${depth} 层</span>
+        <span class="stat-item">${bytesStr}</span>`;
+        }
+
+// ===== CONVERT =====
+        function autoConvert() {
+            if (_acTimer) clearTimeout(_acTimer);
+            const title = document.getElementById('inputTitle');
+            title.classList.add('converting');
+            _acTimer = setTimeout(() => { convertNow(); title.classList.remove('converting'); }, AC_DELAY);
+        }
+
+        function convertNow() {
+            const raw = document.getElementById('monacoInput').value.trim();
+            if (!raw) { showStatus('⚠️ 请先粘贴 MongoDB 数据','warning'); return; }
+
+            const { results, errors, total } = parseMongoInput(raw);
+
+            if (results.length === 0) {
+                const err = errors[0];
+                showStatus(`❌ 转换失败（第${err.index}个文档）：${err.msg}`, 'error');
+                return;
+            }
+
+            // Apply deep parse
+            let processed = results.map(r => _deepParseEnabled ? deepParseStrings(r) : r);
+
+            // Output as array if multiple docs, single object if one
+            _lastParsedObj = processed.length === 1 ? processed[0] : processed;
+            _lastFormattedJSON = JSON.stringify(_lastParsedObj, null, 2);
+            _originalJSON = _lastFormattedJSON;
+
+            setOutputJSON(_lastFormattedJSON);
+            updateOutputStats(_lastParsedObj, _lastFormattedJSON);
+
+            // Update doc count badge
+            const badge = document.getElementById('docCountBadge');
+            if (total > 1) {
+                badge.textContent = total + ' 文档';
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Extract fields for filter panel
+            extractAllFields(_lastParsedObj);
+
+            // Build status
+            if (errors.length > 0) {
+                showStatus(`⚠️ ${results.length}/${total} 文档转换成功，${errors.length} 个失败`, 'warning');
+            } else if (total > 1) {
+                showStatus(`✅ ${total} 个文档全部转换成功！`, 'success');
+            } else {
+                showStatus('✅ 转换成功！', 'success');
+            }
+
+            // Save to history
+            saveHistory(raw, _lastFormattedJSON, total, results.length);
+        }
+
+        function setOutputJSON(json) {
+            if (editorOutput) {
+                editorOutput.setValue(json);
+                monaco.editor.setModelLanguage(editorOutput.getModel(), 'json');
+            }
+        }
+
+// ===== FIELD EXTRACTION =====
+        function extractAllFields(obj, prefix = '', result = []) {
+            if (typeof obj !== 'object' || obj === null) return result;
+            const target = Array.isArray(obj) ? (obj[0] || {}) : obj;
+            for (const k of Object.keys(target)) {
+                const path = prefix ? prefix + '.' + k : k;
+                const val = target[k];
+                const type = val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
+                result.push({ path, type });
+                if (type === 'object') extractAllFields(val, path, result);
+            }
+            _allFields = result;
+            return result;
+        }
+
+// ===== QUICK PASTE =====
+        async function quickPaste() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text.trim()) { showStatus('⚠️ 剪贴板为空','warning'); return; }
+                document.getElementById('monacoInput').value = text;
+                autoConvert();
+                showStatus('✅ 已粘贴，自动转换中...','success');
+            } catch(err) {
+                if (err.name === 'NotAllowedError') showStatus('❌ 无权限访问剪贴板，请手动粘贴','error');
+                else showStatus('❌ 粘贴失败：' + err.message,'error');
+            }
+        }
+
+// ===== COPY / DOWNLOAD =====
+        function copyOutput() {
+            if (!_lastFormattedJSON) { showStatus('⚠️ 没有内容可复制','warning'); return; }
+            navigator.clipboard.writeText(_lastFormattedJSON)
+                .then(() => showStatus('✅ 已复制到剪贴板！','success'))
+                .catch(e => showStatus('❌ 复制失败：' + e.message,'error'));
+        }
+
+        function downloadJSON() {
+            if (!_lastFormattedJSON) { showStatus('⚠️ 没有内容可下载','warning'); return; }
+            const blob = new Blob([_lastFormattedJSON], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mongo_export_' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showStatus('✅ 下载成功！','success');
+        }
+
+// ===== CLEAR =====
+        function clearAll() {
+            document.getElementById('monacoInput').value = '';
+            if (editorOutput) editorOutput.setValue('');
+            _lastParsedObj = null;
+            _lastFormattedJSON = '';
+            _originalJSON = '';
+            _allFields = [];
+            document.getElementById('outputStats').innerHTML = '';
+            document.getElementById('docCountBadge').style.display = 'none';
+            document.getElementById('statusMessage').className = '';
+            document.getElementById('inputTitle').classList.remove('converting');
+            if (_acTimer) clearTimeout(_acTimer);
+        }
+
+// ===== STATUS =====
+        let _sTimer = null;
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMessage');
+            if (_sTimer) clearTimeout(_sTimer);
+            el.className = ''; el.style.display = 'none'; void el.offsetWidth;
+            el.textContent = msg; el.style.display = 'block'; el.className = type;
+            requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+            _sTimer = setTimeout(() => {
+                el.classList.remove('visible');
+                setTimeout(() => { el.className = ''; el.style.display = 'none'; }, 280);
+            }, type === 'error' ? 4500 : 2500);
+        }
+
+// ===== HISTORY =====
+        function loadHistory() {
+            try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { return []; }
+        }
+        function saveHistory(input, output, total, success) {
+            const history = loadHistory();
+            const entry = {
+                id: Date.now(),
+                time: new Date().toLocaleString('zh-CN', { hour12: false }),
+                preview: input.slice(0, 120).replace(/\n/g,' '),
+                input,
+                output,
+                total,
+                success
+            };
+            history.unshift(entry);
+            if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+        }
+        function openHistory() {
+            renderHistoryList();
+            document.getElementById('historyPanel').classList.add('open');
+            document.getElementById('historyOverlay').classList.add('open');
+        }
+        function closeHistory() {
+            document.getElementById('historyPanel').classList.remove('open');
+            document.getElementById('historyOverlay').classList.remove('open');
+        }
+        function renderHistoryList() {
+            const history = loadHistory();
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+                return;
+            }
+            list.innerHTML = history.map(entry => `
+        <div class="history-item" onclick="restoreHistory(${entry.id})">
+            <div class="history-item-time">${entry.time}</div>
+            <div class="history-item-preview">${escapeHtml(entry.preview)}</div>
+            <div class="history-item-meta">📄 ${entry.total} 文档 · ✅ ${entry.success} 成功</div>
+            <button class="history-del" onclick="deleteHistory(event, ${entry.id})" title="删除">×</button>
+        </div>
+    `).join('');
+        }
+        function restoreHistory(id) {
+            const history = loadHistory();
+            const entry = history.find(h => h.id === id);
+            if (!entry) return;
+            if (entry.input) document.getElementById('monacoInput').value = entry.input;
+            _lastFormattedJSON = entry.output;
+            _originalJSON = entry.output;
+            setOutputJSON(entry.output);
+            try {
+                _lastParsedObj = JSON.parse(entry.output);
+                updateOutputStats(_lastParsedObj, entry.output);
+                extractAllFields(_lastParsedObj);
+            } catch(e) {}
+            closeHistory();
+            showStatus('✅ 已还原历史记录','success');
+        }
+        function deleteHistory(e, id) {
+            e.stopPropagation();
+            let history = loadHistory();
+            history = history.filter(h => h.id !== id);
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+            renderHistoryList();
+        }
+        function clearHistory() {
+            if (!confirm('确认清空全部历史记录？')) return;
+            try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
+            renderHistoryList();
+            showStatus('✅ 历史记录已清空','success');
+        }
+
+// ===== FIELD FILTER =====
+        function openFilterPanel() {
+            if (_allFields.length === 0) {
+                showStatus('⚠️ 请先转换数据后再过滤', 'warning');
+                return;
+            }
+            if (_selectedFields.size === 0) {
+                // Default: all selected
+                _allFields.forEach(f => _selectedFields.add(f.path));
+            }
+            renderFilterList();
+            document.getElementById('filterPanel').classList.add('open');
+            document.getElementById('filterOverlay').classList.add('open');
+        }
+        function closeFilterPanel() {
+            document.getElementById('filterPanel').classList.remove('open');
+            document.getElementById('filterOverlay').classList.remove('open');
+        }
+        function renderFilterList(query = '') {
+            const list = document.getElementById('filterList');
+            const fields = query
+                ? _allFields.filter(f => f.path.toLowerCase().includes(query.toLowerCase()))
+                : _allFields;
+            if (fields.length === 0) {
+                list.innerHTML = '<div class="filter-empty">没有匹配的字段</div>';
+                return;
+            }
+            // Only show top-level fields (no dots) for simplicity, plus first level nested
+            const topLevel = fields.filter(f => f.path.split('.').length <= 2);
+            list.innerHTML = topLevel.map(f => {
+                const sel = _selectedFields.has(f.path);
+                const indent = f.path.includes('.') ? 'style="padding-left:28px"' : '';
+                return `
+        <div class="filter-item ${sel ? 'selected' : ''}" ${indent} onclick="toggleField('${escapeHtml(f.path)}')">
+            <div class="filter-checkbox"><span class="filter-check-icon">✓</span></div>
+            <span class="filter-key">${escapeHtml(f.path)}</span>
+            <span class="filter-type">${f.type}</span>
+        </div>`;
+            }).join('');
+        }
+        function filterSearchFields() {
+            renderFilterList(document.getElementById('filterSearch').value);
+        }
+        function toggleField(path) {
+            if (_selectedFields.has(path)) _selectedFields.delete(path);
+            else _selectedFields.add(path);
+            renderFilterList(document.getElementById('filterSearch').value);
+        }
+        function selectAllFields()   { _allFields.forEach(f => _selectedFields.add(f.path)); renderFilterList(); }
+        function deselectAllFields() { _selectedFields.clear(); renderFilterList(); }
+        function invertSelection()   {
+            _allFields.forEach(f => {
+                if (_selectedFields.has(f.path)) _selectedFields.delete(f.path);
+                else _selectedFields.add(f.path);
+            });
+            renderFilterList();
+        }
+        function applyFieldFilter() {
+            if (!_lastParsedObj) { showStatus('⚠️ 没有数据可过滤','warning'); return; }
+            const selected = [..._selectedFields];
+            const topLevelSelected = selected.filter(p => !p.includes('.'));
+
+            function filterObj(obj) {
+                if (typeof obj !== 'object' || obj === null) return obj;
+                if (Array.isArray(obj)) return obj.map(filterObj);
+                const result = {};
+                for (const k of Object.keys(obj)) {
+                    if (topLevelSelected.includes(k)) {
+                        result[k] = obj[k];
+                    }
+                }
+                return result;
+            }
+
+            const filtered = Array.isArray(_lastParsedObj)
+                ? _lastParsedObj.map(filterObj)
+                : filterObj(_lastParsedObj);
+
+            const json = JSON.stringify(filtered, null, 2);
+            setOutputJSON(json);
+            _lastFormattedJSON = json;
+            _filterActive = true;
+            showStatus(`✅ 已过滤（保留 ${topLevelSelected.length} 个字段），可继续复制或下载`, 'success');
+            closeFilterPanel();
+        }
+        function resetFilter() {
+            _selectedFields.clear();
+            _allFields.forEach(f => _selectedFields.add(f.path));
+            if (_originalJSON) { setOutputJSON(_originalJSON); _lastFormattedJSON = _originalJSON; }
+            _filterActive = false;
+            renderFilterList();
+            showStatus('✅ 已重置，输出已还原', 'success');
+        }
+// ===== FULLSCREEN =====
+        function openFullscreen() {
+            document.getElementById('fullscreenOverlay').classList.add('active');
+            if (!editorFull) {
+                editorFull = monaco.editor.create(document.getElementById('monacoFullscreen'), {
+                    model: editorOutput ? editorOutput.getModel() : monaco.editor.createModel(_lastFormattedJSON || '', 'json'),
+                    language: 'json',
+                    theme: _isDark ? 'vs-dark' : 'vs',
+                    readOnly: true,
+                    automaticLayout: true,
+                    minimap: { enabled: true },
+                    scrollBeyondLastLine: false,
+                    fontSize: _outputFontSize,
+                    lineNumbers: 'on',
+                    folding: true,
+                    foldingStrategy: 'indentation',
+                    wordWrap: 'off',
+                    renderLineHighlight: 'all',
+                });
+                registerContextActions(editorFull);
+            } else {
+                monaco.editor.setTheme(_isDark ? 'vs-dark' : 'vs');
+                editorFull.updateOptions({ fontSize: _outputFontSize });
+                if (editorOutput && editorFull.getModel() !== editorOutput.getModel())
+                    editorFull.setModel(editorOutput.getModel());
+                editorFull.layout();
+            }
+            setTimeout(() => editorFull && editorFull.focus(), 50);
+        }
+        function closeFullscreen() {
+            document.getElementById('fullscreenOverlay').classList.remove('active');
+            if (editorOutput) editorOutput.focus();
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.getElementById('fullscreenOverlay').classList.contains('active'))
+                closeFullscreen();
+        });
+
+// ===== THEME =====
+        function toggleTheme() {
+            _isDark = !_isDark;
+            document.body.classList.toggle('light', !_isDark);
+            const btn = document.getElementById('themeToggle');
+            const theme = _isDark ? 'vs-dark' : 'vs';
+            btn.innerHTML = _isDark ? '<span class="icon">🌙</span><span class="label">暗色</span>' : '<span class="icon">☀️</span><span class="label">亮色</span>';
+            monaco.editor.setTheme(theme);
+        }
+
+// ===== TOGGLES =====
+        function toggleWrap() {
+            _wrapEnabled = !_wrapEnabled;
+            [editorOutput, editorFull].forEach(ed => ed && ed.updateOptions({ wordWrap: _wrapEnabled ? 'on' : 'off' }));
+            const btn = document.getElementById('wrapToggle');
+            btn.classList.toggle('active', _wrapEnabled);
+            btn.textContent = _wrapEnabled ? '⇌ 换行 ✓' : '⇌ 换行';
+        }
+        function toggleDeepParse() {
+            _deepParseEnabled = !_deepParseEnabled;
+            const btn = document.getElementById('deepParseToggle');
+            btn.classList.toggle('active', _deepParseEnabled);
+            btn.textContent = _deepParseEnabled ? '🔍 嵌套解析 ✓' : '🔍 嵌套解析';
+            const raw = document.getElementById('monacoInput').value.trim();
+            if (raw) convertNow();
+            showStatus(_deepParseEnabled ? '✅ 嵌套 JSON 解析已开启' : '⚠️ 嵌套 JSON 解析已关闭', _deepParseEnabled ? 'success' : 'warning');
+        }
+
+        function toggleOutputEditable() {
+            _outputReadOnly = !_outputReadOnly;
+            if (editorOutput) editorOutput.updateOptions({ readOnly: _outputReadOnly });
+            if (editorFull) editorFull.updateOptions({ readOnly: _outputReadOnly });
+            localStorage.setItem(READ_ONLY_KEY, _outputReadOnly);
+            const btn = document.getElementById('editToggle');
+            btn.classList.toggle('active', !_outputReadOnly);
+            btn.textContent = _outputReadOnly ? '✏️ 编辑' : '✏️ 编辑 ✓';
+            showStatus(_outputReadOnly ? '⚠️ 输出区已设为只读' : '✅ 输出区已设为可编辑', _outputReadOnly ? 'warning' : 'success');
+        }
+
+// ===== TIMESTAMP BAR =====
+        let _tsBarOpen = false, _tsTimer = null;
+        function toggleTsBar(forceOpen) {
+            if (forceOpen === true && _tsBarOpen) return;
+            _tsBarOpen = forceOpen === true ? true : !_tsBarOpen;
+            document.getElementById('tsBarCollapsible').classList.toggle('open', _tsBarOpen);
+            document.getElementById('tsBarToggle').classList.toggle('open', _tsBarOpen);
+            // close codec if opening ts
+            if (_tsBarOpen && _codecBarOpen) {
+                _codecBarOpen = false;
+                document.getElementById('codecBarCollapsible').classList.remove('open');
+                document.getElementById('codecBarToggle').classList.remove('open');
+            }
+            if (_tsBarOpen) {
+                // Wait for animation, then scroll to reveal
+                setTimeout(() => {
+                    document.getElementById('tsBarCollapsible').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('tsTimestamp').focus();
+                }, 380);
+            }
+        }
+        function tsAutoConvert(from) {
+            if (_tsTimer) clearTimeout(_tsTimer);
+            _tsTimer = setTimeout(() => {
+                const ts = document.getElementById('tsTimestamp').value.trim();
+                const dt = document.getElementById('tsDatetime').value.trim();
+                if (from === 'ts' && ts) tsFromTimestamp(ts);
+                else if (from === 'dt' && dt) tsFromDatetime(dt);
+            }, 400);
+        }
+        function tsConvert() { const ts = document.getElementById('tsTimestamp').value.trim(), dt = document.getElementById('tsDatetime').value.trim(); if (ts) tsFromTimestamp(ts); else if (dt) tsFromDatetime(dt); }
+        function tsFromTimestamp(val) {
+            let num = Number(val); if (isNaN(num) || val === '') return;
+            if (String(val).length <= 10) num = num * 1000;
+            const d = new Date(num); if (isNaN(d.getTime())) return;
+            const pad = n => String(n).padStart(2,'0');
+            document.getElementById('tsDatetime').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            if (String(val).length <= 10) document.getElementById('tsTimestamp').value = num;
+            highlightTsInput('tsDatetime');
+        }
+        function tsFromDatetime(val) {
+            const n = val.replace(' ','T'); let d = new Date(n);
+            if (isNaN(d.getTime())) d = new Date(n + 'T00:00:00');
+            if (isNaN(d.getTime())) return;
+            document.getElementById('tsTimestamp').value = d.getTime();
+            highlightTsInput('tsTimestamp');
+        }
+        function highlightTsInput(id) {
+            const el = document.getElementById(id);
+            el.style.borderColor = 'var(--accent)'; el.style.boxShadow = '0 0 0 3px var(--accent-glow)';
+            setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1200);
+        }
+        function tsClear(id) { document.getElementById(id).value = ''; document.getElementById(id).focus(); }
+        function tsNow() { const now = Date.now(); document.getElementById('tsTimestamp').value = now; tsFromTimestamp(String(now)); highlightTsInput('tsTimestamp'); highlightTsInput('tsDatetime'); }
+
+// ===== CODEC BAR =====
+        let _codecBarOpen = false;
+        let _currentCodec = 'base64';
+
+        function toggleCodecBar(forceOpen) {
+            if (forceOpen === true && _codecBarOpen) return;
+            _codecBarOpen = forceOpen === true ? true : !_codecBarOpen;
+            document.getElementById('codecBarCollapsible').classList.toggle('open', _codecBarOpen);
+            document.getElementById('codecBarToggle').classList.toggle('open', _codecBarOpen);
+            // close ts if opening codec
+            if (_codecBarOpen && _tsBarOpen) {
+                _tsBarOpen = false;
+                document.getElementById('tsBarCollapsible').classList.remove('open');
+                document.getElementById('tsBarToggle').classList.remove('open');
+            }
+            if (_codecBarOpen) {
+                setTimeout(() => {
+                    document.getElementById('codecBarCollapsible').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('codecInput').focus();
+                }, 420);
+            }
+        }
+
+        function selectCodec(codec) {
+            _currentCodec = codec;
+            document.querySelectorAll('.codec-tab').forEach(t => t.classList.toggle('active', t.dataset.codec === codec));
+            document.getElementById('codecInput').placeholder = _codecMeta[codec] ? _codecMeta[codec].placeholder : '输入内容...';
+            document.getElementById('codecOutput').value = '';
+        }
+
+        const _codecMeta = {
+            base64:  { label:'Base64\n编 / 解码',   placeholder:'输入文本，或粘贴 Base64 字符串进行解码...' },
+            url:     { label:'URL\n编 / 解码',      placeholder:'输入文本，或粘贴已编码的 URL 进行解码...' },
+            unicode: { label:'Unicode\n转义互换',   placeholder:'输入文本（如：你好）或转义序列（如：\\u4f60\\u597d）...' },
+            html:    { label:'HTML实体\n编 / 解码', placeholder:'输入文本（如：<div>）或实体（如：&lt;div&gt;）...' },
+            hex:     { label:'Hex\n编 / 解码',      placeholder:'输入文本，或粘贴十六进制字节串（如：48656c6c6f）...' },
+            jwt:     { label:'JWT\n仅支持解码',     placeholder:'粘贴 JWT Token（格式：header.payload.signature）...' },
+        };
+
+        function codecEncode() {
+            const val = document.getElementById('codecInput').value;
+            if (!val.trim()) { showStatus('⚠️ 请输入内容', 'warning'); return; }
+            let result = '';
+            try {
+                switch (_currentCodec) {
+                    case 'base64':
+                        result = btoa(unescape(encodeURIComponent(val)));
+                        break;
+                    case 'url':
+                        result = encodeURIComponent(val);
+                        break;
+                    case 'unicode':
+                        result = [...val].map(c => {
+                            const code = c.codePointAt(0);
+                            return code > 127 ? `\\u${code.toString(16).padStart(4,'0')}` : c;
+                        }).join('');
+                        break;
+                    case 'html':
+                        result = val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+                        break;
+                    case 'hex':
+                        result = [...new TextEncoder().encode(val)].map(b => b.toString(16).padStart(2,'0')).join('');
+                        break;
+                    case 'jwt':
+                        showStatus('⚠️ JWT 为只读解码，不支持编码', 'warning'); return;
+                }
+                highlightCodecOutput(result);
+            } catch(e) {
+                showStatus('❌ 编码失败：' + e.message, 'error');
+            }
+        }
+
+        function codecDecode() {
+            const val = document.getElementById('codecInput').value;
+            if (!val.trim()) { showStatus('⚠️ 请输入内容', 'warning'); return; }
+            let result = '';
+            try {
+                switch (_currentCodec) {
+                    case 'base64':
+                        result = decodeURIComponent(escape(atob(val.trim())));
+                        break;
+                    case 'url':
+                        result = decodeURIComponent(val);
+                        break;
+                    case 'unicode':
+                        result = val.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+                        break;
+                    case 'html':
+                        const d = document.createElement('textarea');
+                        d.innerHTML = val; result = d.value;
+                        break;
+                    case 'hex': {
+                        const clean = val.replace(/\s/g,'');
+                        const bytes = new Uint8Array(clean.match(/.{1,2}/g).map(b => parseInt(b,16)));
+                        result = new TextDecoder().decode(bytes);
+                        break;
+                    }
+                    case 'jwt': {
+                        const parts = val.trim().split('.');
+                        if (parts.length < 2) { showStatus('⚠️ 无效的 JWT 格式', 'warning'); return; }
+                        const pad = s => s + '='.repeat((4 - s.length % 4) % 4);
+                        const header = JSON.parse(decodeURIComponent(escape(atob(pad(parts[0])))));
+                        const payload = JSON.parse(decodeURIComponent(escape(atob(pad(parts[1])))));
+                        result = JSON.stringify({ header, payload }, null, 2);
+                        break;
+                    }
+                }
+                highlightCodecOutput(result);
+            } catch(e) {
+                showStatus('❌ 解码失败：' + e.message, 'error');
+            }
+        }
+
+        function highlightCodecOutput(val) {
+            const el = document.getElementById('codecOutput');
+            el.value = val;
+            el.style.borderColor = 'var(--accent)'; el.style.boxShadow = '0 0 0 3px var(--accent-glow)';
+            setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1200);
+        }
+
+        function codecSwap() {
+            const inp = document.getElementById('codecInput');
+            const out = document.getElementById('codecOutput');
+            const tmp = inp.value;
+            inp.value = out.value;
+            out.value = tmp;
+        }
+
+        function codecClear(id) {
+            document.getElementById(id).value = '';
+            document.getElementById(id).focus();
+        }
+
+        function codecClearInput() {
+            document.getElementById('codecInput').value = '';
+            document.getElementById('codecOutput').value = '';
+            document.getElementById('codecInput').focus();
+        }
+
+        function codecCopy() {
+            const val = document.getElementById('codecOutput').value;
+            if (!val) { showStatus('⚠️ 没有可复制的内容', 'warning'); return; }
+            navigator.clipboard.writeText(val)
+                .then(() => showStatus('✅ 已复制：' + val.slice(0,40), 'success'))
+                .catch(() => { showStatus('❌ 复制失败', 'error'); });
+        }
+
+// ===== OUTPUT FONT SIZE & READ ONLY =====
+        const FONT_SIZE_KEY = 'mongo_converter_font_size';
+        const READ_ONLY_KEY = 'mongo_converter_output_readonly';
+        let _outputFontSize = parseInt(localStorage.getItem(FONT_SIZE_KEY) || '13', 10);
+        let _outputReadOnly = localStorage.getItem(READ_ONLY_KEY) === 'true';
+        function changeOutputFontSize(delta) {
+            _outputFontSize = Math.min(24, Math.max(9, _outputFontSize + delta));
+            if (editorOutput) editorOutput.updateOptions({ fontSize: _outputFontSize });
+            if (editorFull) editorFull.updateOptions({ fontSize: _outputFontSize });
+            document.getElementById('outputFontSizeLabel').textContent = _outputFontSize + 'px';
+            localStorage.setItem(FONT_SIZE_KEY, _outputFontSize);
+        }
+// Apply saved font size label on load
+        document.getElementById('outputFontSizeLabel').textContent = _outputFontSize + 'px';
+
+// ===== DIVIDER DRAG =====
+        const dividerEl = document.getElementById('divider');
+        const contentEl = document.getElementById('mainArea');
+        let _isResizing = false;
+        dividerEl.addEventListener('mousedown', () => { _isResizing = true; dividerEl.classList.add('dragging'); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; });
+        document.addEventListener('mousemove', e => {
+            if (!_isResizing) return;
+            const r = contentEl.getBoundingClientRect(), l = e.clientX - r.left, ri = r.width - l - 6;
+            if (l < 200 || ri < 200) return;
+            document.getElementById('leftSection').style.flex = `0 0 ${l}px`;
+            document.getElementById('rightSection').style.flex = `0 0 ${ri}px`;
+        });
+        document.addEventListener('mouseup', () => { if (_isResizing) { _isResizing = false; dividerEl.classList.remove('dragging'); document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto'; } });
+
+// ===== UTILS =====
+        function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Expose
+        window.changeOutputFontSize = changeOutputFontSize;
+        window.quickPaste = quickPaste;
+        window.convertNow = convertNow;
+        window.copyOutput = copyOutput;
+        window.downloadJSON = downloadJSON;
+        window.clearAll = clearAll;
+        window.toggleTheme = toggleTheme;
+        window.toggleWrap = toggleWrap;
+        window.toggleDeepParse = toggleDeepParse;
+        window.openFullscreen = openFullscreen;
+        window.closeFullscreen = closeFullscreen;
+        window.toggleTsBar = toggleTsBar;
+        window.tsAutoConvert = tsAutoConvert;
+        window.tsConvert = tsConvert;
+        window.tsClear = tsClear;
+        window.tsNow = tsNow;
+        window.openHistory = openHistory;
+        window.closeHistory = closeHistory;
+        window.restoreHistory = restoreHistory;
+        window.deleteHistory = deleteHistory;
+        window.clearHistory = clearHistory;
+        window.toggleCodecBar = toggleCodecBar;
+        window.selectCodec = selectCodec;
+        window.codecEncode = codecEncode;
+        window.codecDecode = codecDecode;
+        window.codecSwap = codecSwap;
+        window.codecClear = codecClear;
+        window.codecClearInput = codecClearInput;
+        window.codecCopy = codecCopy;
+        window.openFilterPanel = openFilterPanel;
+        window.closeFilterPanel = closeFilterPanel;
+        window.toggleField = toggleField;
+        window.selectAllFields = selectAllFields;
+        window.deselectAllFields = deselectAllFields;
+        window.invertSelection = invertSelection;
+        window.applyFieldFilter = applyFieldFilter;
+        window.resetFilter = resetFilter;
+        window.filterSearchFields = filterSearchFields;
+        window.toggleOutputEditable = toggleOutputEditable;
+
+        // Init edit toggle state
+        if (!_outputReadOnly) {
+            const btn = document.getElementById('editToggle');
+            if (btn) {
+                btn.classList.add('active');
+                btn.textContent = '✏️ 编辑 ✓';
+            }
+        }
+    })();
+</script>
+</body>
+</html>
