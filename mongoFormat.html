@@ -904,17 +904,48 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius:4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-        /* Left textarea */
-        textarea#monacoInput {
-            flex: 1; min-height: 0; margin: 0; padding: 14px;
-            border: 1px solid var(--border); border-radius: var(--radius-md);
-            font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6;
-            resize: none; background: var(--bg-panel); color: var(--text-input);
-            outline: none; transition: var(--transition);
-            scrollbar-color: var(--border) var(--bg-panel); scrollbar-width: thin;
+        /* Left textarea + line-number gutter */
+        .input-gutter-wrap {
+            position: relative;
+            flex: 1; min-height: 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-panel);
+            outline: none;
+            transition: var(--transition);
             box-shadow: inset 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+            overflow: hidden;
         }
-        textarea#monacoInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), inset 0 1px 3px rgba(0,0,0,0.1); }
+        .input-gutter-wrap:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow), inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .input-line-gutter {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 48px;
+            padding: 14px 8px 14px 0;
+            text-align: right;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 13px; line-height: 1.6;
+            color: var(--text-sub);
+            background: transparent;
+            user-select: none; pointer-events: none;
+            white-space: pre;
+            box-sizing: border-box;
+            will-change: transform;
+            z-index: 1;
+        }
+        textarea#monacoInput {
+            position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2;
+            margin: 0; padding: 14px 14px 14px 60px;
+            border: none; border-radius: 0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6;
+            resize: none; background: transparent; color: var(--text-input);
+            outline: none; transition: var(--transition);
+            scrollbar-color: var(--border) transparent; scrollbar-width: thin;
+            box-shadow: none;
+        }
+        textarea#monacoInput:focus { border-color: var(--accent); box-shadow: none; }
         textarea#monacoInput::placeholder { color: var(--text-ph); }
 
         @media (max-width:768px) {
@@ -974,7 +1005,10 @@
                         <button class="btn-expand" onclick="quickPaste()" title="快速粘贴剪贴板">📋 粘贴</button>
                     </div>
                 </div>
-                <textarea id="monacoInput" placeholder="粘贴 MongoDB 数据...&#10;例如：&#10;{&#10;  _id: ObjectId(&quot;507f1f77bcf86cd799439011&quot;),&#10;  ts: ISODate(&quot;2024-01-01T00:00:00Z&quot;),&#10;  count: NumberLong(100)&#10;}"></textarea>
+                <div class="input-gutter-wrap">
+                    <div class="input-line-gutter" id="inputGutter" aria-hidden="true"></div>
+                    <textarea id="monacoInput" placeholder="粘贴 MongoDB 数据...&#10;例如：&#10;{&#10;  _id: ObjectId(&quot;507f1f77bcf86cd799439011&quot;),&#10;  ts: ISODate(&quot;2024-01-01T00:00:00Z&quot;),&#10;  count: NumberLong(100)&#10;}"></textarea>
+                </div>
             </div>
 
             <div class="divider" id="divider"></div>
@@ -1164,8 +1198,23 @@
 // ===== MONACO INIT =====
 // ===== TEXTAREA INPUT INIT =====
         const _inputEl = document.getElementById('monacoInput');
-        _inputEl.addEventListener('input', () => autoConvert());
+        const _inputGutter = document.getElementById('inputGutter');
+
+        // 生成行号并与 textarea 滚动同步
+        function syncInputGutterScroll() {
+            _inputGutter.style.transform = 'translateY(' + (-_inputEl.scrollTop) + 'px)';
+        }
+        function updateInputGutter() {
+            const lines = _inputEl.value.split('\n').length || 1;
+            let nums = '';
+            for (let i = 1; i <= lines; i++) nums += i + '\n';
+            _inputGutter.textContent = nums;
+            syncInputGutterScroll();
+        }
+        _inputEl.addEventListener('input', () => { autoConvert(); updateInputGutter(); });
+        _inputEl.addEventListener('scroll', syncInputGutterScroll);
         _inputEl.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') convertNow(); });
+        updateInputGutter();
 
         require.config({ paths: { vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs' } });
         require(['vs/editor/editor.main'], function() {
@@ -1230,24 +1279,25 @@
 // ===== MONGODB TYPE CONVERSION =====
         function mongoToJSON(input) {
             let out = input
-                // NumberLong / NumberInt / NumberDecimal — extract numeric value
-                .replace(/NumberLong\(\s*"?(-?\d+)"?\s*\)/g, '$1')
-                .replace(/NumberInt\(\s*(-?\d+)\s*\)/g, '$1')
-                .replace(/NumberDecimal\(\s*"([^"]+)"\s*\)/g, '"$1"')
-                // ISODate → string
-                .replace(/ISODate\((".*?")\)/g, '$1')
-                .replace(/new\s+Date\((".*?")\)/g, '$1')
+                // NumberLong / NumberInt / NumberDecimal — extract numeric value (支持单/双引号或无引号)
+                .replace(/NumberLong\(\s*['"]?(-?\d+)['"]?\s*\)/g, '$1')
+                .replace(/NumberInt\(\s*['"]?(-?\d+)['"]?\s*\)/g, '$1')
+                .replace(/NumberDecimal\(\s*['"]([^'"]+)['"]\s*\)/g, '"$1"')
+                // Long('...') / Long("...") / Long(123) — BSON Long，提取数值
+                .replace(/\bLong\(\s*['"]?(-?\d+)['"]?\s*\)/g, '$1')
+                // ISODate → string (支持单/双引号)
+                .replace(/ISODate\(\s*(['"])(.*?)\1\s*\)/g, '"$2"')
+                .replace(/new\s+Date\(\s*(['"])(.*?)\1\s*\)/g, '"$2"')
                 .replace(/new\s+Date\((\d+)\)/g, '"$1"')
-                // ObjectId → string
-                .replace(/ObjectId\((".*?")\)/g, '$1')
-                // UUID → string
-                .replace(/UUID\((".*?")\)/g, '"uuid:$1"'.replace('"uuid:"','').replace('"$1"','$1'))
-                .replace(/UUID\("([^"]+)"\)/g, '"$1"')
-                // BinData → placeholder string
-                .replace(/BinData\(\s*\d+\s*,\s*"([^"]*)"\s*\)/g, '"[BinData:$1]"')
-                // DBRef
-                .replace(/DBRef\(\s*"([^"]+)"\s*,\s*ObjectId\("([^"]+)"\)\s*\)/g, '{"$ref":"$1","$id":"$2"}')
-                .replace(/DBRef\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g, '{"$ref":"$1","$id":"$2"}')
+                // ObjectId → string (支持单/双引号)
+                .replace(/ObjectId\(\s*(['"])(.*?)\1\s*\)/g, '"$2"')
+                // UUID → string (支持单/双引号)
+                .replace(/UUID\(\s*(['"])(.*?)\1\s*\)/g, '"$2"')
+                // BinData → placeholder string (支持单/双引号)
+                .replace(/BinData\(\s*\d+\s*,\s*(['"])([^'"]*)\1\s*\)/g, '"[BinData:$2]"')
+                // DBRef (支持单/双引号)
+                .replace(/DBRef\(\s*(['"])([^'"]+)\1\s*,\s*ObjectId\(\s*(['"])([^'"]+)\3\s*\)\s*\)/g, '{"$ref":"$2","$id":"$4"}')
+                .replace(/DBRef\(\s*(['"])([^'"]+)\1\s*,\s*(['"])([^'"]+)\3\s*\)/g, '{"$ref":"$2","$id":"$4"}')
                 // Timestamp(t, i) → t (seconds)
                 .replace(/Timestamp\(\s*(\d+)\s*,\s*\d+\s*\)/g, '$1')
                 // MinKey / MaxKey
@@ -1255,6 +1305,13 @@
                 .replace(/MaxKey/g, '"MaxKey"')
                 // undefined
                 .replace(/\bundefined\b/g, 'null')
+                // Single-quoted string values → double-quoted (mongo shell 风格单引号字符串转 JSON 双引号)
+                .replace(/'((?:\\.|[^'\\])*)'/g, function (m, g1) {
+                    var s = g1
+                        .replace(/\\'/g, "'")   // \' → '
+                        .replace(/"/g, '\\"');  // " → \"
+                    return '"' + s + '"';
+                })
                 // Unquoted keys: {key: ...} → {"key": ...}
                 .replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$.]*)\s*:/g, '$1"$2":');
 
@@ -1442,6 +1499,7 @@
                 const text = await navigator.clipboard.readText();
                 if (!text.trim()) { showStatus('⚠️ 剪贴板为空','warning'); return; }
                 document.getElementById('monacoInput').value = text;
+                updateInputGutter();
                 autoConvert();
                 showStatus('✅ 已粘贴，自动转换中...','success');
             } catch(err) {
@@ -1473,6 +1531,7 @@
 // ===== CLEAR =====
         function clearAll() {
             document.getElementById('monacoInput').value = '';
+            updateInputGutter();
             if (editorOutput) editorOutput.setValue('');
             _lastParsedObj = null;
             _lastFormattedJSON = '';
@@ -1547,7 +1606,10 @@
             const history = loadHistory();
             const entry = history.find(h => h.id === id);
             if (!entry) return;
-            if (entry.input) document.getElementById('monacoInput').value = entry.input;
+            if (entry.input) {
+                document.getElementById('monacoInput').value = entry.input;
+                updateInputGutter();
+            }
             _lastFormattedJSON = entry.output;
             _originalJSON = entry.output;
             setOutputJSON(entry.output);
