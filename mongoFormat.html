@@ -935,6 +935,15 @@
             will-change: transform;
             z-index: 1;
         }
+        /* 隐藏镜像层：用于测量每个逻辑行软换行后所占视觉行数 */
+        .input-mirror {
+            position: absolute; top: 0; left: 60px;
+            visibility: hidden; pointer-events: none;
+            white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+            box-sizing: border-box;
+            z-index: 0;
+        }
+        .input-mirror > div { min-height: 1em; }
         textarea#monacoInput {
             position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2;
             margin: 0; padding: 14px 14px 14px 60px;
@@ -1007,6 +1016,7 @@
                 </div>
                 <div class="input-gutter-wrap">
                     <div class="input-line-gutter" id="inputGutter" aria-hidden="true"></div>
+                    <div class="input-mirror" id="inputMirror" aria-hidden="true"></div>
                     <textarea id="monacoInput" placeholder="粘贴 MongoDB 数据...&#10;例如：&#10;{&#10;  _id: ObjectId(&quot;507f1f77bcf86cd799439011&quot;),&#10;  ts: ISODate(&quot;2024-01-01T00:00:00Z&quot;),&#10;  count: NumberLong(100)&#10;}"></textarea>
                 </div>
             </div>
@@ -1199,21 +1209,64 @@
 // ===== TEXTAREA INPUT INIT =====
         const _inputEl = document.getElementById('monacoInput');
         const _inputGutter = document.getElementById('inputGutter');
+        const _inputMirror = document.getElementById('inputMirror');
 
-        // 生成行号并与 textarea 滚动同步
+        // 行号随 textarea 垂直滚动同步
         function syncInputGutterScroll() {
             _inputGutter.style.transform = 'translateY(' + (-_inputEl.scrollTop) + 'px)';
         }
+
+        // 生成行号：用镜像层测量每个逻辑行软换行后占的视觉行数，
+        // 逻辑行首行显示行号，后续视觉行留空，保证行号与视觉行对齐
         function updateInputGutter() {
-            const lines = _inputEl.value.split('\n').length || 1;
+            const cs = getComputedStyle(_inputEl);
+            const padL = parseFloat(cs.paddingLeft) || 0;
+            const padR = parseFloat(cs.paddingRight) || 0;
+            const contentW = _inputEl.clientWidth - padL - padR;
+            // 同步字体与换行规则，确保镜像层测量结果与 textarea 一致
+            _inputMirror.style.font = cs.font;
+            _inputMirror.style.letterSpacing = cs.letterSpacing;
+            _inputMirror.style.wordSpacing = cs.wordSpacing;
+            _inputMirror.style.width = Math.max(0, contentW) + 'px';
+
+            const lines = _inputEl.value.split('\n');
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < lines.length; i++) {
+                const d = document.createElement('div');
+                // 末尾用零宽空格防止纯空格行被折叠；空行给一个空格占位
+                d.textContent = lines[i] === '' ? ' ' : lines[i] + '​';
+                frag.appendChild(d);
+            }
+            _inputMirror.innerHTML = '';
+            _inputMirror.appendChild(frag);
+
+            const lineH = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) * 1.6);
             let nums = '';
-            for (let i = 1; i <= lines; i++) nums += i + '\n';
+            const divs = _inputMirror.children;
+            for (let i = 0; i < divs.length; i++) {
+                const vis = Math.max(1, Math.round(divs[i].offsetHeight / lineH));
+                nums += (i + 1) + '\n';
+                for (let k = 1; k < vis; k++) nums += '\n';
+            }
             _inputGutter.textContent = nums;
             syncInputGutterScroll();
         }
-        _inputEl.addEventListener('input', () => { autoConvert(); updateInputGutter(); });
+
+        _inputEl.addEventListener('input', () => { autoConvert(); scheduleGutterUpdate(); });
         _inputEl.addEventListener('scroll', syncInputGutterScroll);
         _inputEl.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') convertNow(); });
+        // rAF 节流，避免高频输入/尺寸变化时频繁测量
+        let _gutterRAF = 0;
+        function scheduleGutterUpdate() {
+            if (_gutterRAF) return;
+            _gutterRAF = requestAnimationFrame(() => { _gutterRAF = 0; updateInputGutter(); });
+        }
+        // 宽度变化（窗口缩放 / 拖动分隔条）时重算软换行行数
+        if (window.ResizeObserver) {
+            new ResizeObserver(() => scheduleGutterUpdate()).observe(_inputEl);
+        } else {
+            window.addEventListener('resize', scheduleGutterUpdate);
+        }
         updateInputGutter();
 
         require.config({ paths: { vs: 'https://registry.npmmirror.com/monaco-editor/0.55.1/files/min/vs' } });
